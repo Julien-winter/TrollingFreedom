@@ -44,12 +44,12 @@ public class RandomParticle implements Listener {
 
             } else if(rand == 3){
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Core.instance, () -> {
-                    p.getWorld().spawnParticle(Particle.SMOKE_NORMAL, p.getLocation(), 10);
+                    p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation(), 10);
                 }, 100L);
 
             } else if(rand == 4) {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Core.instance, () -> {
-                    p.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, p.getLocation(), 10);
+                    p.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, p.getLocation(), 10);
                 }, 100L);
 
             } else if(rand == 5) {
@@ -74,7 +74,7 @@ public class RandomParticle implements Listener {
 
             } else if(rand == 9) {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Core.instance, () -> {
-                    p.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, p.getLocation(), 10);
+                    p.getWorld().spawnParticle(Particle.ENCHANT, p.getLocation(), 10);
                 }, 100L);
 
             } else if(rand == 10) {
@@ -84,7 +84,7 @@ public class RandomParticle implements Listener {
 
             } else if(rand == 11) {
                 Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Core.instance, () -> {
-                    p.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, p.getLocation(), 10);
+                    p.getWorld().spawnParticle(Particle.EXPLOSION, p.getLocation(), 10);
                 }, 100L);
             }
         }

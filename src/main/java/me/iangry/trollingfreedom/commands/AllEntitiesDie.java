@@ -16,7 +16,7 @@ public class AllEntitiesDie implements Listener {
         for (Entity entity : p.getNearbyEntities(10, 10, 10)) {
             if (entity instanceof Mob)
                 entity.remove();
-            entity.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, entity.getLocation(), 1);
+            entity.getWorld().spawnParticle(Particle.EXPLOSION, entity.getLocation(), 1);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_DONKEY_DEATH, 5.0F, 1.2F);
             if (p.getNearbyEntities(10, 10, 10) == null) {
                 return;

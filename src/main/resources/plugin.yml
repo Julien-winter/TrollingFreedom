@@ -1,16 +1,16 @@
 name: "TrollingFreedom"
-version: 2.4.3
-description: "Troll Plugin with GUI"
+version: ${project.version}
+description: "Troll plugin with GUI - modernized fork for Minecraft 1.21.x"
 author: iAngry
 main: me.iangry.trollingfreedom.main.Core
-softdepend: [Essentials, Citizens, ProtocolLib]
-api-version: 1.13
+softdepend: [Essentials, ProtocolLib]
+api-version: "1.21"
 commands:
   trollingfreedom:
     description: Plugin help
     aliases: [ tf ]
   trollgui:
-    descrption: Troll GUI open
+    description: Troll GUI open
     aliases: [tgui, trollingfreedomgui, tfgui]
   untroll:
     description: Untroll player

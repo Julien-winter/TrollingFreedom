@@ -3,7 +3,9 @@ package me.iangry.trollingfreedom.commands;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import me.iangry.trollingfreedom.main.Core;
 import org.bukkit.Bukkit;
@@ -22,9 +24,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 public class InventoryRave implements Listener {
     public static ArrayList<String> Rave1 = new ArrayList<>();
+    private static final Map<String, List<BukkitTask>> TASKS = new HashMap<>();
+    private static final String[] GLASS_COLORS = {
+            "WHITE", "ORANGE", "MAGENTA", "LIGHT_BLUE", "YELLOW", "LIME", "PINK",
+            "GRAY", "LIGHT_GRAY", "CYAN", "PURPLE", "BLUE", "BROWN", "GREEN", "RED", "BLACK"
+    };
+    private final Random random = new Random();
     private int r = 255, g = 0, b = 0;
 
     private int posRed, negRed;
@@ -42,14 +51,23 @@ public class InventoryRave implements Listener {
     @SuppressWarnings("unchecked")
     public void restoreInventory(Player p) throws IOException {
         File f = new File(Core.instance.getDataFolder().getAbsolutePath(), p.getName() + ".yml");
+        if (!f.exists()) {
+            return;
+        }
         FileConfiguration c = YamlConfiguration.loadConfiguration(f);
-        ItemStack[] content = ((List<ItemStack>) c.get("inventory.armor")).toArray(new ItemStack[0]);
-        p.getInventory().setArmorContents(content);
-        content = ((List<ItemStack>) c.get("inventory.content")).toArray(new ItemStack[0]);
-        p.getInventory().setContents(content);
+        if (c.isList("inventory.armor")) {
+            ItemStack[] armor = ((List<ItemStack>) c.get("inventory.armor")).toArray(new ItemStack[0]);
+            p.getInventory().setArmorContents(armor);
+        }
+        if (c.isList("inventory.content")) {
+            ItemStack[] content = ((List<ItemStack>) c.get("inventory.content")).toArray(new ItemStack[0]);
+            p.getInventory().setContents(content);
+        }
     }
+
     public void deleteInventoryFile(Player p) throws IOException {
         File f = new File(Core.instance.getDataFolder().getAbsolutePath(), p.getName() + ".yml");
+        //noinspection ResultOfMethodCallIgnored
         f.delete();
     }
 
@@ -67,73 +85,106 @@ public class InventoryRave implements Listener {
     public void UnInvRave(Player p) throws IOException {
         if (Rave1.contains(p.getName())) {
             Rave1.remove(p.getName());
-            Bukkit.getScheduler().cancelTasks((Plugin)Core.instance);
+            cancelTasks(p.getName());
             p.getInventory().clear();
             p.getInventory().setArmorContents(null);
             restoreInventory(p);
             deleteInventoryFile(p);
-        } else {
-            return;
         }
+    }
+
+    private void cancelTasks(String playerName) {
+        List<BukkitTask> tasks = TASKS.remove(playerName);
+        if (tasks != null) {
+            for (BukkitTask task : tasks) {
+                task.cancel();
+            }
+        }
+    }
+
+    private void addTask(String playerName, BukkitTask task) {
+        TASKS.computeIfAbsent(playerName, k -> new ArrayList<>()).add(task);
+    }
+
+    @EventHandler
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        String name = event.getPlayer().getName();
+        Rave1.remove(name);
+        cancelTasks(name);
     }
 
     @EventHandler
     public void onDrop(PlayerDropItemEvent event) {
         if (Rave1.contains(event.getPlayer().getName()))
             event.setCancelled(true);
-        return;
     }
 
     @EventHandler
     public void onPlace(BlockPlaceEvent event) {
         if (Rave1.contains(event.getPlayer().getName()))
             event.setCancelled(true);
-        return;
     }
 
     public void Rave(final Player p) {
-        (new BukkitRunnable() {
-            int i = 0;
-
+        BukkitTask task = (new BukkitRunnable() {
             public void run() {
                 p.getInventory().clear();
                 for (int counter = 1; counter <= 36; counter++)
-                    p.getInventory().setItem(p.getInventory().firstEmpty(), new ItemStack(Material.LEGACY_STAINED_GLASS_PANE, 1, (short)(byte)((new Random()).nextInt(13) + 1)));
+                    p.getInventory().setItem(p.getInventory().firstEmpty(), randomPane());
             }
-        }).runTaskTimer((Plugin)Core.instance, 1L, 5L);
+        }).runTaskTimer((Plugin) Core.instance, 1L, 5L);
+        addTask(p.getName(), task);
     }
 
     public void Rave2(final Player p) {
         p.getInventory().setArmorContents(null);
-        (new BukkitRunnable() {
-            int i = 0;
-
+        BukkitTask task = (new BukkitRunnable() {
             public void run() {
+                if (!Rave1.contains(p.getName())) {
+                    cancel();
+                    return;
+                }
                 Color color = nextRGB();
 
-                p.getInventory().setHelmet(new ItemStack(Material.LEGACY_STAINED_GLASS, 1, (short)(byte)((new Random()).nextInt(13) + 1)));
+                p.getInventory().setHelmet(randomGlass());
                 p.getInventory().setChestplate(getItemStack(Material.LEATHER_CHESTPLATE, color));
                 p.getInventory().setLeggings(getItemStack(Material.LEATHER_LEGGINGS, color));
                 p.getInventory().setBoots(getItemStack(Material.LEATHER_BOOTS, color));
-                p.getInventory().setItemInOffHand(new ItemStack(Material.LEGACY_STAINED_GLASS_PANE, 1, (short)(byte)((new Random()).nextInt(13) + 1)));
+                p.getInventory().setItemInOffHand(randomPane());
             }
-        }).runTaskTimer((Plugin)Core.instance, 1L, 1L);
+        }).runTaskTimer((Plugin) Core.instance, 1L, 1L);
+        addTask(p.getName(), task);
     }
+
+    private ItemStack randomPane() {
+        Material m = Material.matchMaterial(GLASS_COLORS[random.nextInt(GLASS_COLORS.length)] + "_STAINED_GLASS_PANE");
+        if (m == null) m = Material.WHITE_STAINED_GLASS_PANE;
+        return new ItemStack(m);
+    }
+
+    private ItemStack randomGlass() {
+        Material m = Material.matchMaterial(GLASS_COLORS[random.nextInt(GLASS_COLORS.length)] + "_STAINED_GLASS");
+        if (m == null) m = Material.WHITE_STAINED_GLASS;
+        return new ItemStack(m);
+    }
+
     public ItemStack getItemStack(Material material, Color color) {
-        ItemStack itemStack = new ItemStack(material, 1, (byte) 0);
+        ItemStack itemStack = new ItemStack(material);
         ItemMeta itemMeta = itemStack.getItemMeta();
 
-        ((LeatherArmorMeta) itemMeta).setColor(color);
-        itemMeta.setDisplayName("§4R§ca§6v§ee§a!");
-        itemMeta.addItemFlags(ItemFlag.values());
-
-        itemStack.setItemMeta(itemMeta);
+        if (itemMeta instanceof LeatherArmorMeta) {
+            ((LeatherArmorMeta) itemMeta).setColor(color);
+            itemMeta.setDisplayName("§4R§ca§6v§ee§a!");
+            itemMeta.addItemFlags(ItemFlag.values());
+            itemStack.setItemMeta(itemMeta);
+        }
         return itemStack;
     }
 
     public ItemStack getItemStack(Material material) {
         return getItemStack(material, Color.fromRGB(r, g, b));
     }
+
     private Color nextRGB() {
         int increment = 15;
         int max = 255 / increment;

@@ -137,7 +137,7 @@ public class ExplosiveSheep implements Listener {
         scheduler.scheduleSyncDelayedTask((Core.instance), new Runnable() {
             public void run() {
                 s.remove();
-                s.getWorld().spawnParticle(Particle.EXPLOSION_HUGE, s.getLocation(), 2, 2, 2, 2);
+                s.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, s.getLocation(), 2, 2, 2, 2);
                 p.playSound(p.getLocation(), Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 10, 1);
             }
         }, 338L);

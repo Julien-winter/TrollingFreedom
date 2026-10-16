@@ -30,7 +30,7 @@ public class Slenderman implements Listener {
                 p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_AMBIENT, 50, 1);
                 p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 100, 1);
                 p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 200, 1));
-                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 200, 2));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 200, 2));
             }
         }, 10L, 5L);
     }
@@ -40,7 +40,7 @@ public class Slenderman implements Listener {
         if (Slender1.contains(p.getName())) {
             Slender1.remove(p2.getName());
             p.removePotionEffect(PotionEffectType.BLINDNESS);
-            p.removePotionEffect(PotionEffectType.SLOW);
+            p.removePotionEffect(PotionEffectType.SLOWNESS);
             Bukkit.getScheduler().cancelTasks(Core.instance);
             for (Entity entity : p.getNearbyEntities(100, 100, 100)) {
                 if (entity instanceof Enderman)

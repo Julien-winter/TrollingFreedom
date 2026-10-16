@@ -22,6 +22,9 @@ trollingfreedom-help:
 values:
   using-uuid: true
   dependency-downloader: true
+  # Checks spigotmc resource 53419 for a newer (original) version. Off by default
+  # because this fork is intentionally ahead of the original release.
+  update-checker: false
 menu:
   select-player: '&7Select a player'
   settings: '&cSelect settings'

@@ -2,53 +2,41 @@ package me.iangry.trollingfreedom.commands;
 
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.events.PacketContainer;
 import me.iangry.trollingfreedom.main.Core;
+import me.iangry.trollingfreedom.other.BukkitCompat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
-import com.comphenix.protocol.events.PacketContainer;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 
+/**
+ * Shows the "end of the credits" screen to a player.
+ * Modernized: the packet layout is written directly
+ * (float reason, float value) instead of reflecting into obfuscated NMS fields.
+ */
 public class Credits implements Listener {
 
-
-    static Field field_spectatorMode;
+    private static final float REASON_SHOW_CREDITS = 4.0F;
 
     public void Credits(Player player) {
-        if (field_spectatorMode == null) {
-            Core.instance.getLogger().severe("Failed to show credits screen to player. This server version is not compatible.");
+        if (!BukkitCompat.isProtocolLibEnabled()) {
+            Core.instance.getLogger().warning("Credits troll needs ProtocolLib.");
             return;
         }
-        final PacketContainer packet = new PacketContainer(PacketType.Play.Server.GAME_STATE_CHANGE);
-        try {
-            final Object spectatorMode = field_spectatorMode.get(null);
-            packet.getModifier().write(0, spectatorMode);
-            packet.getFloat().write(0, 1.0F);
-            Credits.sendPacket(player, packet);
-        }
-        catch (IllegalAccessException e) {
-            Core.instance.getLogger().severe("Failed to show credits screen to player:");
-            e.printStackTrace();
-        }
+        final PacketContainer packet = ProtocolLibrary.getProtocolManager().createPacket(PacketType.Play.Server.GAME_STATE_CHANGE);
+        packet.getFloat().write(0, REASON_SHOW_CREDITS);
+        packet.getFloat().write(1, 1.0F);
+        Credits.sendPacket(player, packet);
     }
 
-    static {
-        field_spectatorMode = null;
+    public static boolean sendPacket(final Player player, final PacketContainer packet) {
         try {
-            field_spectatorMode = PacketType.Play.Server.GAME_STATE_CHANGE.getPacketClass().getDeclaredField("e");
-        } catch (NoSuchFieldException e) {
-            Core.instance.getLogger().severe("Failed to initialise the troll. This server version is not compatible.");
+            ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
+        } catch (Exception e) {
+            Core.instance.getLogger().severe("Failed to show credits screen to player:");
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
-        public static boolean sendPacket(final Player player, final PacketContainer packet) {
-            try {
-                ProtocolLibrary.getProtocolManager().sendServerPacket(player, packet);
-            }
-            catch (InvocationTargetException invocationTargetException) {
-                return false;
-            }
-            return true;
-        }
 }

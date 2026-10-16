@@ -57,8 +57,15 @@ public class Core extends JavaPlugin implements Listener {
         return usingUUID;
     }
 
+    /**
+     * Returns the Minecraft version (e.g. "1.21.11").
+     * Uses Bukkit.getBukkitVersion() because on modern Paper/Spigot the
+     * CraftServer package no longer contains a version segment.
+     */
     public String getServerVersion() {
-        return Bukkit.getServer().getVersion().split("MC: ")[1].replaceAll("\\)", "").trim();
+        String bv = Bukkit.getBukkitVersion();
+        int dash = bv.indexOf('-');
+        return dash > 0 ? bv.substring(0, dash) : bv;
     }
 
     public ItemStack getSkull() {
@@ -66,8 +73,11 @@ public class Core extends JavaPlugin implements Listener {
         ItemMeta skullmeta = skull.getItemMeta();
         skullmeta.setDisplayName("§b§lTrolling§3§lFreedom §7| §bTroll GUI");
         skullmeta.setLore(Arrays.asList("§0§k000000000", "§7§k777777", "§9§k999999", "§a§k§l133742069YEET!"));
-        skullmeta.addEnchant(XEnchantment.DURABILITY.parseEnchantment(), 1, false);
-        skullmeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        org.bukkit.enchantments.Enchantment glint = XEnchantment.DURABILITY.parseEnchantment();
+        if (glint != null) {
+            skullmeta.addEnchant(glint, 1, false);
+            skullmeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
         skull.setItemMeta(skullmeta);
         return skull;
     }
@@ -93,7 +103,9 @@ public class Core extends JavaPlugin implements Listener {
 
         getCommand("control").setExecutor(new Control());
 
-        version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
+        String pkg = Bukkit.getServer().getClass().getPackage().getName();
+        String[] pkgParts = pkg.split("\\.");
+        version = pkgParts.length > 3 ? pkgParts[3] : Bukkit.getBukkitVersion();
         Bukkit.getServer().getPluginManager().registerEvents(this, this);
         Bukkit.getServer().getPluginManager().registerEvents(new EventListener(), this);
         getCommand("trollp").setExecutor(new TrollWithCMD());
@@ -105,9 +117,16 @@ public class Core extends JavaPlugin implements Listener {
 
         getServer().getPluginManager().registerEvents(new AFK(), this);
         getServer().getPluginManager().registerEvents(new OP(), this);
-        getServer().getPluginManager().registerEvents(new Demo(), this);
+        // These three talk ProtocolLib packet types in their method signatures,
+        // so registering them without ProtocolLib throws NoClassDefFoundError.
+        if (BukkitCompat.isProtocolLibEnabled()) {
+            getServer().getPluginManager().registerEvents(new Demo(), this);
+            getServer().getPluginManager().registerEvents(new Credits(), this);
+            getServer().getPluginManager().registerEvents(new WorldLoading(), this);
+        } else {
+            getLogger().info("ProtocolLib is missing - the Demo, Credits and WorldLoading trolls are disabled until it is installed.");
+        }
         getServer().getPluginManager().registerEvents(new TNT(), this);
-        getServer().getPluginManager().registerEvents(new Credits(), this);
         getServer().getPluginManager().registerEvents(new Freeze(), this);
         getServer().getPluginManager().registerEvents(new Spin(), this);
         getServer().getPluginManager().registerEvents(new Launch(), this);
@@ -118,7 +137,6 @@ public class Core extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(new Void(), this);
         getServer().getPluginManager().registerEvents(new Annoy(), this);
         getServer().getPluginManager().registerEvents(new Vomit(), this);
-        getServer().getPluginManager().registerEvents(new WorldLoading(), this);
         getServer().getPluginManager().registerEvents(new Pumpkin(), this);
         getServer().getPluginManager().registerEvents(new CaveSounds(), this);
         getServer().getPluginManager().registerEvents(new AnvilDrop(), this);
@@ -190,23 +208,26 @@ public class Core extends JavaPlugin implements Listener {
         }
         usingUUID = getServer().getOnlineMode();
 
-
-        new UpdateChecker(this, 53419).getVersion(version -> {
-            if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
-                String message1 = (String) Core.instance.getConfig().get("trollingfreedom-console-no-update");
-                String replaced1 = message1.replace("&", "§");
-                getServer().getConsoleSender().sendMessage(replaced1);
-            } else {
-                getServer().getConsoleSender().sendMessage(ChatColor.RED + "=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
-                getServer().getConsoleSender().sendMessage(ChatColor.RED + "You are using an older version of §bTrolling§3§lFreedom");
-                getServer().getConsoleSender().sendMessage(ChatColor.RED + "Download the newest version here:");
-                getServer().getConsoleSender().sendMessage(ChatColor.LIGHT_PURPLE + "§nhttps://www.spigotmc.org/resources/.53419/");
-                getServer().getConsoleSender().sendMessage(ChatColor.RED + "=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
-                Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(operator -> operator.sendMessage("§b§lTF §8| §7There is now a newer version of §bTrolling§3§lFreedom"));
-                Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(operator -> operator.sendMessage("§7Please download the newest version here:"));
-                Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(operator -> operator.sendMessage("§b§nhttps://www.spigotmc.org/resources/.53419/"));
-            }
-        });
+        if (getConfig().getBoolean("values.update-checker", false)) {
+            new UpdateChecker(this, 53419).getVersion(version -> {
+                if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
+                    String message1 = Core.instance.getConfig().getString("trollingfreedom-console-no-update");
+                    if (message1 != null) {
+                        String replaced1 = message1.replace("&", "§");
+                        getServer().getConsoleSender().sendMessage(replaced1);
+                    }
+                } else {
+                    getServer().getConsoleSender().sendMessage(ChatColor.RED + "=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+                    getServer().getConsoleSender().sendMessage(ChatColor.RED + "You are using an older version of §bTrolling§3§lFreedom");
+                    getServer().getConsoleSender().sendMessage(ChatColor.RED + "Download the newest version here:");
+                    getServer().getConsoleSender().sendMessage(ChatColor.LIGHT_PURPLE + "§nhttps://www.spigotmc.org/resources/.53419/");
+                    getServer().getConsoleSender().sendMessage(ChatColor.RED + "=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=");
+                    Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(operator -> operator.sendMessage("§b§lTF §8| §7There is now a newer version of §bTrolling§3§lFreedom"));
+                    Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(operator -> operator.sendMessage("§7Please download the newest version here:"));
+                    Bukkit.getOnlinePlayers().stream().filter(ServerOperator::isOp).forEach(operator -> operator.sendMessage("§b§nhttps://www.spigotmc.org/resources/.53419/"));
+                }
+            });
+        }
     }
 
     public String getP() {
@@ -226,18 +247,19 @@ public class Core extends JavaPlugin implements Listener {
 
     public static Boolean advCheck(String perm, Player p) {
         if (instance.getConfig().getBoolean("values.advanced-perms.enabled")) {
+            String playerName = instance.getConfig().getString("values.advanced-perms.playername");
             if (usingUUID) {
-                OfflinePlayer pp = Bukkit.getPlayerExact(instance.getConfig().getString("values.advanced-perms.playername"));
-                if (pp.isOnline() && pp.hasPlayedBefore()) {
+                OfflinePlayer pp = playerName == null ? null : Bukkit.getPlayerExact(playerName);
+                if (pp != null && pp.isOnline()) {
                     return p.getUniqueId().equals(pp.getUniqueId());
                 }
+                return false;
             } else {
-                return p.getName().equals(instance.getConfig().getString("values.advanced-perms.playername"));
+                return p.getName().equals(playerName);
             }
         } else {
             return p.hasPermission(perm);
         }
-        return false;
     }
 
     @Override

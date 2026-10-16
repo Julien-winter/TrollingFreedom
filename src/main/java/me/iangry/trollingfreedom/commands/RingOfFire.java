@@ -44,9 +44,9 @@ public class RingOfFire implements Listener {
     private void particle(Player p) {
                 p.playSound(p.getLocation(), Sound.ENTITY_GENERIC_BURN, 100, 1);
                 p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BELL_RESONATE, 100, 1);
-                p.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, p.getLocation(), 1);
+                p.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, p.getLocation(), 1);
                 p.getWorld().spawnParticle(Particle.FALLING_LAVA, p.getLocation(), 10);
-        p.getWorld().spawnParticle(Particle.FIREWORKS_SPARK, p.getLocation(), 10);
+        p.getWorld().spawnParticle(Particle.FIREWORK, p.getLocation(), 10);
     }
 
     @EventHandler

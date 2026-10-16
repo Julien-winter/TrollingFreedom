@@ -7,6 +7,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.Skull;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.profile.PlayerProfile;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -52,9 +53,11 @@ public class SkullCreator {
         notNull(item, "item");
         notNull(name, "name");
 
-        return Bukkit.getUnsafe().modifyItemStack(item,
-                "{SkullOwner:\"" + name + "\"}"
-        );
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        meta.setOwningPlayer(Bukkit.getOfflinePlayer(name));
+        item.setItemMeta(meta);
+
+        return item;
     }
 
     /**
@@ -136,10 +139,36 @@ public class SkullCreator {
         notNull(item, "item");
         notNull(base64, "base64");
 
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        if (meta != null) {
+            meta.setOwnerProfile(createProfileWithTexture(base64));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    /**
+     * Builds a {@link PlayerProfile} that carries a base64 texture value.
+     * This replaces the old {@code Bukkit.getUnsafe().modifyItemStack} NBT hack,
+     * which no longer exists on modern servers.
+     *
+     * <p>Since ProfileProperty (raw base64) was dropped from the Bukkit API,
+     * the skin URL inside the base64 JSON is extracted and set directly.
+     */
+    public static PlayerProfile createProfileWithTexture(String base64) {
         UUID hashAsId = new UUID(base64.hashCode(), base64.hashCode());
-        return Bukkit.getUnsafe().modifyItemStack(item,
-                "{SkullOwner:{Id:\"" + hashAsId + "\",Properties:{textures:[{Value:\"" + base64 + "\"}]}}}"
-        );
+        PlayerProfile profile = Bukkit.createPlayerProfile(hashAsId);
+        try {
+            String json = new String(Base64.getDecoder().decode(base64), java.nio.charset.StandardCharsets.UTF_8);
+            java.util.regex.Matcher matcher =
+                    java.util.regex.Pattern.compile("\"url\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+            if (matcher.find()) {
+                profile.getTextures().setSkin(new URI(matcher.group(1)).toURL());
+            }
+        } catch (Exception e) {
+            Bukkit.getLogger().warning("Could not apply skull texture, falling back to default head: " + e.getMessage());
+        }
+        return profile;
     }
 
     /**
@@ -196,21 +225,10 @@ public class SkullCreator {
         notNull(block, "block");
         notNull(base64, "base64");
 
-        UUID hashAsId = new UUID(base64.hashCode(), base64.hashCode());
-
-        String args = String.format(
-                "%d %d %d %s",
-                block.getX(),
-                block.getY(),
-                block.getZ(),
-                "{Owner:{Id:\"" + hashAsId + "\",Properties:{textures:[{Value:\"" + base64 + "\"}]}}}"
-        );
-
-        if (newerApi()) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "data merge block " + args);
-        } else {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),"blockdata " + args);
-        }
+        setBlockType(block);
+        Skull skull = (Skull) block.getState();
+        skull.setOwnerProfile(createProfileWithTexture(base64));
+        skull.update(true, false);
     }
 
     private static boolean newerApi() {

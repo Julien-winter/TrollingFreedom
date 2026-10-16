@@ -19,7 +19,7 @@ public class ExplodingChicken implements Listener {
         creatureenderman.setInvulnerable(true);
         creatureenderman.setAI(false);
         Location loc = creatureenderman.getLocation();
-        Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
+        Firework fw = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK_ROCKET);
         FireworkMeta fwm = fw.getFireworkMeta();
 
         fwm.setPower(5);
@@ -28,9 +28,9 @@ public class ExplodingChicken implements Listener {
         fw.setFireworkMeta(fwm);
         fw.detonate();
         for (int x = 0; x < 50; x++) {
-            Firework fw2 = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK);
+            Firework fw2 = (Firework) loc.getWorld().spawnEntity(loc, EntityType.FIREWORK_ROCKET);
             fw2.setFireworkMeta(fwm);
-            p.getWorld().spawnParticle(Particle.SMOKE_NORMAL, loc, 5, 0, 0, 0);
+            p.getWorld().spawnParticle(Particle.SMOKE, loc, 5, 0, 0, 0);
 
         }
         Bukkit.getServer().getScheduler().scheduleSyncDelayedTask(Core.instance, () -> {
